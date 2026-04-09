@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function Home() {
-  const [isTracking, setIsTracking] = useState(true);
-  const [status, setStatus] = useState("Tracking location...");
+  const [isTracking, setIsTracking] = useState(false);
+  const [status, setStatus] = useState("Idle");
+  const [hasUserActivated, setHasUserActivated] = useState(false);
 
   const watchIdRef = useRef(null);
   const alertTimeoutRef = useRef(null);
@@ -37,6 +38,7 @@ export default function Home() {
 
   const startTracking = () => {
     if (isTracking) return;
+    setHasUserActivated(true);
     setIsTracking(true);
     setStatus("Tracking location...");
   };
@@ -48,7 +50,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (!isTracking) {
+    if (!isTracking || !hasUserActivated) {
       if (alertTimeoutRef.current) {
         clearTimeout(alertTimeoutRef.current);
         alertTimeoutRef.current = null;
@@ -112,7 +114,23 @@ export default function Home() {
         window.speechSynthesis.cancel();
       }
     };
-  }, [isTracking, triggerVoiceAlert, triggerVibration]);
+  }, [isTracking, hasUserActivated, triggerVoiceAlert, triggerVibration]);
+
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      setHasUserActivated(true);
+      setIsTracking(true);
+      setStatus("Tracking location...");
+    };
+
+    window.addEventListener("pointerdown", handleFirstInteraction, {
+      once: true,
+    });
+
+    return () => {
+      window.removeEventListener("pointerdown", handleFirstInteraction);
+    };
+  }, []);
 
   const handleToggle = () => {
     if (isTracking) {
